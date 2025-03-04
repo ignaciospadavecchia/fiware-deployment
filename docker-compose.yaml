@@ -1,0 +1,157 @@
+version: "3.8"  # Especifica la versión de Docker Compose - usar la más reciente para características modernas
+
+services:
+  # Broker de contexto - componente central de FIWARE
+  orion:
+    image: fiware/orion:${ORION_VERSION}
+    ports:
+      - "${ORION_PORT}:1026"
+    depends_on:
+      - mongo
+    command: -dbhost mongo  # Conexión a MongoDB
+    healthcheck:  # Añadir healthcheck para mejor monitoreo
+      test: curl --fail -s http://localhost:1026/version || exit 1
+      interval: 30s
+    networks:
+      - fiware
+
+  # Base de datos para Orion
+  mongo:
+    image: mongo:${MONGO_VERSION}
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - type: bind
+        source: ${MONGO_DATA_PATH}
+        target: /data/db
+      - type: volume
+        source: mongo_config
+        target: /data/configdb
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+    networks:
+      - fiware
+
+  # Componente de persistencia histórica
+  cygnus:
+    image: fiware/cygnus-ngsi:${CYGNUS_VERSION}
+    hostname: cygnus
+    depends_on:
+      - postgres-db
+    ports:
+      - "${CYGNUS_API_PORT}:5050"
+      - "${CYGNUS_ADMIN_PORT}:5080"  # Puerto de administración
+    environment:
+      - "CYGNUS_POSTGRESQL_HOST=postgres-db"
+      - "CYGNUS_POSTGRESQL_PORT=5432"
+      - "CYGNUS_POSTGRESQL_DATABASE=${POSTGRES_DB}"
+      - "CYGNUS_POSTGRESQL_USER=${POSTGRES_USER}"
+      - "CYGNUS_POSTGRESQL_PASS=${POSTGRES_PASSWORD}"
+      - "CYGNUS_LOG_LEVEL=${CYGNUS_LOG_LEVEL}"  # Cambiar a DEBUG solo para desarrollo
+    networks:
+      - fiware
+
+  # Base de datos para históricos
+  postgres-db:
+    image: postgres:${POSTGRES_VERSION}
+    environment:
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_DB=${POSTGRES_DB}"
+    volumes:
+      - type: bind
+        source: ${POSTGRES_DATA_PATH}
+        target: /var/lib/postgresql/data
+    networks:
+      - fiware
+
+  # Agente IoT para JSON - permite conectar dispositivos IoT
+  iot-agent-json:
+    image: fiware/iotagent-json:${IOTA_VERSION}
+    hostname: iot-agent-json
+    depends_on:
+      - mongo
+    environment:
+      - "IOTA_CB_HOST=orion"
+      - "IOTA_CB_PORT=1026"
+      - "IOTA_NORTH_PORT=${IOTA_NORTH_PORT}"
+      - "IOTA_REGISTRY_TYPE=mongodb"
+      - "IOTA_MONGO_HOST=mongo"
+      - "IOTA_MONGO_PORT=27017"
+      - "IOTA_MONGO_DB=${IOTA_MONGO_DB}"
+    ports:
+      - "${IOTA_NORTH_PORT}:4041"
+      - "${IOTA_SOUTH_PORT}:7896"
+    networks:
+      - fiware
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - type: bind
+        source: ${GRAFANA_DATA_PATH}
+        target: /var/lib/grafana
+      - type: bind
+        source: ./config/grafana/provisioning
+        target: /etc/grafana/provisioning
+    networks:
+      - fiware
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - type: bind
+        source: ${PROMETHEUS_DATA_PATH}
+        target: /prometheus
+      - type: bind
+        source: ./config/prometheus/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - fiware
+
+  keyrock:
+    image: fiware/idm:${KEYROCK_VERSION}
+    ports:
+      - "${KEYROCK_PORT}:3005"
+    depends_on:
+      - mysql-db
+    environment:
+      - "DEBUG=${KEYROCK_DEBUG}"
+      - "IDM_DB_HOST=mysql-db"
+    volumes:
+      - type: bind
+        source: ${KEYROCK_DATA_PATH}
+        target: /opt/fiware-idm/public/img
+    networks:
+      - fiware
+
+  # wilma:
+  #   image: fiware/pep-proxy:8.3.0
+  #   ports:
+  #     - "1027:1027"
+  #   environment:
+  #     - PEP_PROXY_APP_HOST=orion
+  #     - PEP_PROXY_APP_PORT=1026
+  #     - PEP_PROXY_PORT=1027
+  #     - PEP_PROXY_IDM_HOST=keyrock
+
+volumes:
+  mongo_config:
+    name: fiware_mongo_config
+  postgres_data:
+  grafana_data:
+
+networks:
+  fiware:
+    driver: bridge
