@@ -1,5 +1,5 @@
 # ============================================================================
-# SERVICIOS DE PLATAFORMA FIWARE
+# FIWARE DOCKER COMPOSE
 # ============================================================================
 version: "3.8"
 
@@ -37,11 +37,11 @@ services:
     volumes:
       - type: volume # if local use "bind"
         source: mongo_data
-        target: /data/db
-      - type: volume
+        target: ${MONGO_DATA_PATH}
+      - type: volume # if local use "bind"
         source: mongo_config
-        target: /data/configdb
-    healthcheck:
+        target: ${MONGO_CONFIG_PATH}
+    healthcheck: 
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 30s
       timeout: 10s
@@ -50,124 +50,7 @@ services:
     networks:
       - fiware
 
-  # ----------------------------------------
-  # COMPONENTES DE PERSISTENCIA HISTÓRICA
-  # ----------------------------------------
-  
-  # Cygnus - Conector para persistencia histórica
-  cygnus:
-    image: fiware/cygnus-ngsi:${CYGNUS_VERSION}
-    container_name: fiware-cygnus
-    hostname: ${CYGNUS_HOST}
-    depends_on:
-      - postgres-db
-      - mongo
-      - mysql
-    ports:
-      - "${CYGNUS_API_PORT}:5050"
-      - "${CYGNUS_ADMIN_PORT}:5080"
-    environment:
-      # Configuración general
-      - "CYGNUS_LOG_LEVEL=${CYGNUS_LOG_LEVEL}"
-      - "CYGNUS_SERVICE_PORT=${CYGNUS_SERVICE_PORT}"
-      
-      # Configuración de PostgreSQL
-      - "CYGNUS_POSTGRESQL_ENABLE=true"
-      - "CYGNUS_POSTGRESQL_HOST=${POSTGRES_HOST}"
-      - "CYGNUS_POSTGRESQL_PORT=${POSTGRES_PORT}"
-      - "CYGNUS_POSTGRESQL_DATABASE=${POSTGRES_DB}"
-      - "CYGNUS_POSTGRESQL_USER=${POSTGRES_USER}"
-      - "CYGNUS_POSTGRESQL_PASS=${POSTGRES_PASSWORD}"
-      - "CYGNUS_POSTGRESQL_SERVICE=${ORION_HOST}"
-      - "CYGNUS_POSTGRESQL_DATA_MODEL=dm-by-service-path"
-      - "CYGNUS_POSTGRESQL_ATTR_PERSISTENCE=row"
-
-      # Configuración de MongoDB
-      - "CYGNUS_MONGO_HOSTS=${MONGO_HOST}:${MONGO_PORT}"
-      - "CYGNUS_MONGO_DB=${MONGO_DB_NAME}"
-      - "CYGNUS_MONGO_SERVICE_PORT=5051"
-      
-      # Configuración de MySQL
-      - "CYGNUS_MYSQL_HOST=${MYSQL_HOST}"
-      - "CYGNUS_MYSQL_PORT=${MYSQL_PORT}"
-      - "CYGNUS_MYSQL_DB=${MYSQL_DATABASE}"
-      - "CYGNUS_MYSQL_USER=${MYSQL_USER}"
-      - "CYGNUS_MYSQL_PASS=${MYSQL_PASSWORD}"
-      - "CYGNUS_MYSQL_DATA_MODEL=dm-by-entity"
-      - "CYGNUS_MYSQL_ATTR_PERSISTENCE=row"
-    restart: unless-stopped
-    networks:
-      - fiware
-
-  # PostgreSQL - Base de datos para históricos
-  postgres-db:
-    image: postgres:${POSTGRES_VERSION}
-    container_name: fiware-postgres
-    hostname: ${POSTGRES_HOST}
-    environment:
-      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
-      - "POSTGRES_USER=${POSTGRES_USER}"
-      - "POSTGRES_DB=${POSTGRES_DB}"
-    volumes:
-      - type: volume # bind
-        source: postgres_data
-        target: /var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_PORT}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - fiware
-
-  # MySQL - Base de datos alternativa para históricos
-  mysql:
-    image: mysql:${MYSQL_VERSION}
-    container_name: fiware-mysql
-    hostname: ${MYSQL_HOST}
-    restart: unless-stopped
-    environment:
-      - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
-      - "MYSQL_DATABASE=${MYSQL_DATABASE}"
-      - "MYSQL_USER=${MYSQL_USER}"
-      - "MYSQL_PASSWORD=${MYSQL_PASSWORD}"
-    ports:
-      - "${MYSQL_PORT}:3306"
-    volumes:
-      - type: volume # bind
-        source: mysql_data
-        target: /var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - fiware
-
-  # STH-Comet - Componente para series temporales históricas
-  sth-comet:
-    image: telefonicaiot/fiware-sth-comet:2.8.0
-    container_name: fiware-sth-comet
-    hostname: ${STH_HOST}
-    depends_on:
-      - mongo
-    ports:
-      - "${STH_PORT}:8666"
-    environment:
-      - "STH_HOST=0.0.0.0"
-      - "STH_PORT=${STH_PORT}"
-      - "DB_PREFIX=${STH_DB_PREFIX}"
-      - "DB_URI=${MONGO_HOST}:${MONGO_PORT}"
-      - "LOGOPS_LEVEL=${STH_LOG_LEVEL}"
-    restart: unless-stopped
-    networks:
-      - fiware
-
-  # ----------------------------------------
+# ----------------------------------------
   # AGENTES IOT
   # ----------------------------------------
   
@@ -243,7 +126,124 @@ services:
     networks:
       - fiware
 
-# ============================================================================
+  # ----------------------------------------
+  # COMPONENTES DE PERSISTENCIA HISTÓRICA
+  # ----------------------------------------
+  
+  # Cygnus - Conector para persistencia histórica
+  cygnus:
+    image: fiware/cygnus-ngsi:${CYGNUS_VERSION}
+    container_name: fiware-cygnus
+    hostname: ${CYGNUS_HOST}
+    depends_on:
+      - postgres-db
+      - mongo
+      - mysql
+    ports:
+      - "${CYGNUS_API_PORT}:5050"
+      - "${CYGNUS_ADMIN_PORT}:5080"
+    environment:
+      # Configuración general
+      - "CYGNUS_LOG_LEVEL=${CYGNUS_LOG_LEVEL}"
+      - "CYGNUS_SERVICE_PORT=${CYGNUS_SERVICE_PORT}"
+      
+      # Configuración de PostgreSQL
+      - "CYGNUS_POSTGRESQL_ENABLE=true"
+      - "CYGNUS_POSTGRESQL_HOST=${POSTGRES_HOST}"
+      - "CYGNUS_POSTGRESQL_PORT=${POSTGRES_PORT}"
+      - "CYGNUS_POSTGRESQL_DATABASE=${POSTGRES_DB}"
+      - "CYGNUS_POSTGRESQL_USER=${POSTGRES_USER}"
+      - "CYGNUS_POSTGRESQL_PASS=${POSTGRES_PASSWORD}"
+      - "CYGNUS_POSTGRESQL_SERVICE=${ORION_HOST}"
+      - "CYGNUS_POSTGRESQL_DATA_MODEL=${CYGNUS_POSTGRESQL_DATA_MODEL}"
+      - "CYGNUS_POSTGRESQL_ATTR_PERSISTENCE=${CYGNUS_POSTGRESQL_ATTR_PERSISTENCE}"
+
+      # Configuración de MongoDB
+      - "CYGNUS_MONGO_HOSTS=${MONGO_HOST}:${MONGO_PORT}"
+      - "CYGNUS_MONGO_DB=${MONGO_DB_NAME}"
+      - "CYGNUS_MONGO_SERVICE_PORT=${CYGNUS_MONGO_SERVICE_PORT}"
+      
+      # Configuración de MySQL
+      - "CYGNUS_MYSQL_HOST=${MYSQL_HOST}"
+      - "CYGNUS_MYSQL_PORT=${MYSQL_PORT}"
+      - "CYGNUS_MYSQL_DB=${MYSQL_DATABASE}"
+      - "CYGNUS_MYSQL_USER=${MYSQL_USER}"
+      - "CYGNUS_MYSQL_PASS=${MYSQL_PASSWORD}"
+      - "CYGNUS_MYSQL_DATA_MODEL=${CYGNUS_MYSQL_DATA_MODEL}"
+      - "CYGNUS_MYSQL_ATTR_PERSISTENCE=${CYGNUS_MYSQL_ATTR_PERSISTENCE}"
+    restart: unless-stopped
+    networks:
+      - fiware
+
+  # PostgreSQL - Base de datos para históricos
+  postgres-db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: fiware-postgres
+    hostname: ${POSTGRES_HOST}
+    environment:
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_DB=${POSTGRES_DB}"
+    volumes:
+      - type: volume # if local, use "bind"
+        source: postgres_data
+        target: /var/lib/postgresql/data 
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - fiware
+
+  # MySQL - Base de datos alternativa para históricos
+  mysql:
+    image: mysql:${MYSQL_VERSION}
+    container_name: fiware-mysql
+    hostname: ${MYSQL_HOST}
+    environment:
+      - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
+      - "MYSQL_DATABASE=${MYSQL_DATABASE}"
+      - "MYSQL_USER=${MYSQL_USER}"
+      - "MYSQL_PASSWORD=${MYSQL_PASSWORD}"
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - type: volume # if local, use "bind"
+        source: mysql_data
+        target: /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - fiware
+
+  # STH-Comet - Componente para series temporales históricas
+  sth-comet:
+    image: telefonicaiot/fiware-sth-comet:2.8.0
+    container_name: fiware-sth-comet
+    hostname: ${STH_HOST}
+    depends_on:
+      - mongo
+    ports:
+      - "${STH_PORT}:8666"
+    environment:
+      - "STH_HOST=0.0.0.0"
+      - "STH_PORT=${STH_PORT}"
+      - "DB_PREFIX=${STH_DB_PREFIX}"
+      - "DB_URI=${MONGO_HOST}:${MONGO_PORT}"
+      - "LOGOPS_LEVEL=${STH_LOG_LEVEL}"
+    restart: unless-stopped
+    networks:
+      - fiware
+
+  # ============================================================================
 # VOLÚMENES PERSISTENTES
 # ============================================================================
 
