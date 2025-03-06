@@ -151,7 +151,7 @@ services:
 
   # STH-Comet - Componente para series temporales históricas
   sth-comet:
-    image: telefonicaiot/fiware-sth-comet:2.8.0
+    image: telefonicaiot/fiware-sth-comet:latest
     container_name: fiware-sth-comet
     hostname: sth
     depends_on:
