@@ -42,8 +42,6 @@ docker run --rm curlimages/curl -s https://registry.hub.docker.com/v2/repositori
 
 - Docker Engine (versión 19.03.0+)
 - Docker Compose (versión 1.27.0+)
-- Al menos 4GB de RAM disponible
-- Al menos 10GB de espacio en disco
 
 ## Instalación y configuración
 
