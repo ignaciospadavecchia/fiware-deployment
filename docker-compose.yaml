@@ -1,8 +1,7 @@
+# ============================================================================
+# SERVICIOS DE PLATAFORMA FIWARE
+# ============================================================================
 version: "3.8"
-
-# ============================================================================
-# SERVICIOS DE LA PLATAFORMA FIWARE
-# ============================================================================
 
 services:
   # ----------------------------------------
@@ -13,12 +12,12 @@ services:
   orion:
     image: fiware/orion:${ORION_VERSION}
     container_name: fiware-orion
-    hostname: orion
+    hostname: ${ORION_HOST}
     ports:
       - "${ORION_PORT}:1026"
     depends_on:
       - mongo
-    command: -dbhost mongo -logLevel INFO
+    command: -dbhost ${MONGO_HOST} -logLevel INFO
     healthcheck:
       test: curl --fail -s http://localhost:1026/version || exit 1
       interval: 30s
@@ -32,12 +31,12 @@ services:
   mongo:
     image: mongo:${MONGO_VERSION}
     container_name: fiware-mongo
-    hostname: mongo
+    hostname: ${MONGO_HOST}
     ports:
       - "${MONGO_PORT}:27017"
     volumes:
-      - type: bind
-        source: ${MONGO_DATA_PATH}
+      - type: volume # if local use "bind"
+        source: mongo_data
         target: /data/db
       - type: volume
         source: mongo_config
@@ -59,7 +58,7 @@ services:
   cygnus:
     image: fiware/cygnus-ngsi:${CYGNUS_VERSION}
     container_name: fiware-cygnus
-    hostname: cygnus
+    hostname: ${CYGNUS_HOST}
     depends_on:
       - postgres-db
       - mongo
@@ -70,27 +69,27 @@ services:
     environment:
       # Configuración general
       - "CYGNUS_LOG_LEVEL=${CYGNUS_LOG_LEVEL}"
-      - "CYGNUS_SERVICE_PORT=5055"
+      - "CYGNUS_SERVICE_PORT=${CYGNUS_SERVICE_PORT}"
       
       # Configuración de PostgreSQL
       - "CYGNUS_POSTGRESQL_ENABLE=true"
-      - "CYGNUS_POSTGRESQL_HOST=postgres-db"
-      - "CYGNUS_POSTGRESQL_PORT=5433"
+      - "CYGNUS_POSTGRESQL_HOST=${POSTGRES_HOST}"
+      - "CYGNUS_POSTGRESQL_PORT=${POSTGRES_PORT}"
       - "CYGNUS_POSTGRESQL_DATABASE=${POSTGRES_DB}"
       - "CYGNUS_POSTGRESQL_USER=${POSTGRES_USER}"
       - "CYGNUS_POSTGRESQL_PASS=${POSTGRES_PASSWORD}"
-      - "CYGNUS_POSTGRESQL_SERVICE=orion"
+      - "CYGNUS_POSTGRESQL_SERVICE=${ORION_HOST}"
       - "CYGNUS_POSTGRESQL_DATA_MODEL=dm-by-service-path"
       - "CYGNUS_POSTGRESQL_ATTR_PERSISTENCE=row"
 
       # Configuración de MongoDB
-      - "CYGNUS_MONGO_HOSTS=mongo:27017"
+      - "CYGNUS_MONGO_HOSTS=${MONGO_HOST}:${MONGO_PORT}"
       - "CYGNUS_MONGO_DB=${MONGO_DB_NAME}"
       - "CYGNUS_MONGO_SERVICE_PORT=5051"
       
       # Configuración de MySQL
-      - "CYGNUS_MYSQL_HOST=mysql"
-      - "CYGNUS_MYSQL_PORT=3306"
+      - "CYGNUS_MYSQL_HOST=${MYSQL_HOST}"
+      - "CYGNUS_MYSQL_PORT=${MYSQL_PORT}"
       - "CYGNUS_MYSQL_DB=${MYSQL_DATABASE}"
       - "CYGNUS_MYSQL_USER=${MYSQL_USER}"
       - "CYGNUS_MYSQL_PASS=${MYSQL_PASSWORD}"
@@ -104,17 +103,17 @@ services:
   postgres-db:
     image: postgres:${POSTGRES_VERSION}
     container_name: fiware-postgres
-    hostname: postgres-db
+    hostname: ${POSTGRES_HOST}
     environment:
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
       - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_DB=${POSTGRES_DB}"
     volumes:
-      - type: bind
-        source: ${POSTGRES_DATA_PATH}
+      - type: volume # bind
+        source: postgres_data
         target: /var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 30s
@@ -128,7 +127,7 @@ services:
   mysql:
     image: mysql:${MYSQL_VERSION}
     container_name: fiware-mysql
-    hostname: mysql
+    hostname: ${MYSQL_HOST}
     restart: unless-stopped
     environment:
       - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
@@ -138,8 +137,8 @@ services:
     ports:
       - "${MYSQL_PORT}:3306"
     volumes:
-      - type: bind
-        source: ${MYSQL_DATA_PATH}
+      - type: volume # bind
+        source: mysql_data
         target: /var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
@@ -153,7 +152,7 @@ services:
   sth-comet:
     image: telefonicaiot/fiware-sth-comet:2.8.0
     container_name: fiware-sth-comet
-    hostname: sth
+    hostname: ${STH_HOST}
     depends_on:
       - mongo
     ports:
@@ -162,7 +161,7 @@ services:
       - "STH_HOST=0.0.0.0"
       - "STH_PORT=${STH_PORT}"
       - "DB_PREFIX=${STH_DB_PREFIX}"
-      - "DB_URI=mongo:27017"
+      - "DB_URI=${MONGO_HOST}:${MONGO_PORT}"
       - "LOGOPS_LEVEL=${STH_LOG_LEVEL}"
     restart: unless-stopped
     networks:
@@ -176,25 +175,25 @@ services:
   iot-agent-json:
     image: fiware/iotagent-json:${IOTA_VERSION}
     container_name: fiware-iot-agent-json
-    hostname: iot-agent-json
+    hostname: ${IOTA_JSON_HOST}
     depends_on:
       - mongo
     environment:
       # Configuración de Context Broker
-      - "IOTA_CB_HOST=orion"
-      - "IOTA_CB_PORT=1026"
+      - "IOTA_CB_HOST=${ORION_HOST}"
+      - "IOTA_CB_PORT=${ORION_PORT}"
       - "IOTA_CB_NGSI_VERSION=v2"
 
       # Configuración de puertos y endpoints
       - "IOTA_NORTH_PORT=${IOTA_NORTH_PORT}"
       - "IOTA_HTTP_PORT=${IOTA_SOUTH_PORT}"
-      - "IOTA_PROVIDER_URL=http://iot-agent-json:${IOTA_NORTH_PORT}"
+      - "IOTA_PROVIDER_URL=http://${IOTA_JSON_HOST}:${IOTA_NORTH_PORT}"
       - "IOTA_DEFAULT_RESOURCE=/iot/json"
 
       # Configuración de MongoDB
       - "IOTA_REGISTRY_TYPE=mongodb"
-      - "IOTA_MONGO_HOST=mongo"
-      - "IOTA_MONGO_PORT=27017"
+      - "IOTA_MONGO_HOST=${MONGO_HOST}"
+      - "IOTA_MONGO_PORT=${MONGO_PORT}"
       - "IOTA_MONGO_DB=${IOTA_MONGO_DB}"
 
       # Configuración general
@@ -212,7 +211,7 @@ services:
   iot-agent-ul:
     image: fiware/iotagent-ul:${IOTA_VERSION}
     container_name: fiware-iot-agent-ul
-    hostname: iot-agent-ul
+    hostname: ${IOTA_UL_HOST}
     depends_on:
       - mongo
     ports:
@@ -220,20 +219,20 @@ services:
       - "${IOTA_UL_SOUTH_PORT}:7897"
     environment:
       # Configuración de Context Broker
-      - "IOTA_CB_HOST=orion"
-      - "IOTA_CB_PORT=1026"
+      - "IOTA_CB_HOST=${ORION_HOST}"
+      - "IOTA_CB_PORT=${ORION_PORT}"
       - "IOTA_CB_NGSI_VERSION=v2"
 
       # Configuración de puertos y endpoints
       - "IOTA_NORTH_PORT=${IOTA_UL_NORTH_PORT}"
       - "IOTA_HTTP_PORT=${IOTA_UL_SOUTH_PORT}"
-      - "IOTA_PROVIDER_URL=http://iot-agent-ul:${IOTA_UL_NORTH_PORT}"
+      - "IOTA_PROVIDER_URL=http://${IOTA_UL_HOST}:${IOTA_UL_NORTH_PORT}"
       - "IOTA_DEFAULT_RESOURCE=/iot/ul"
 
       # Configuración de MongoDB
       - "IOTA_REGISTRY_TYPE=mongodb"
-      - "IOTA_MONGO_HOST=mongo"
-      - "IOTA_MONGO_PORT=27017"
+      - "IOTA_MONGO_HOST=${MONGO_HOST}"
+      - "IOTA_MONGO_PORT=${MONGO_PORT}"
       - "IOTA_MONGO_DB=${IOTA_MONGO_DB}"
 
       # Configuración general
@@ -252,6 +251,12 @@ volumes:
   # Volumen para configuración de MongoDB
   mongo_config:
     name: fiware_mongo_config
+  postgres_data:
+    name: fiware_postgres_data
+  mysql_data:
+    name: fiware_mysql_data
+  mongo_data:
+    name: fiware_mongo_data
 
 # ============================================================================
 # REDES

@@ -1,0 +1,141 @@
+# ============================================================================
+# ENDPOINTS PARA CONFIGURACIÓN DE SISTEMA DE PARKING CON FIWARE
+# ============================================================================
+
+# 1. Registrar un grupo de servicios
+
+curl -iX POST \
+  'http://localhost:4041/iot/services' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: Pamplona' \
+  -H 'fiware-servicepath: /EmpresaParking_01' \
+  -d '{
+  "services": [
+    {
+      "apikey": "parking123",
+      "cbroker": "http://orion:1026",
+      "entity_type": "ParkingSpot",
+      "resource": "/iot/json"
+    }
+  ]
+}'
+
+# 2. Registrar un dispositivo (plaza de aparcamiento)
+
+curl -iX POST \
+  'http://localhost:4041/iot/devices' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: Pamplona' \
+  -H 'fiware-servicepath: /EmpresaParking_01' \
+  -d '{
+  "devices": [
+    {
+      "device_id": "parking-spot-001",
+      "entity_name": "urn:ngsi-ld:ParkingSpot:Pamplona:EmpresaParking01:001",
+      "entity_type": "ParkingSpot",
+      "protocol": "JSON",
+      "transport": "HTTP",
+      "timezone": "Europe/Madrid",
+      "attributes": [
+        {
+          "object_id": "status",
+          "name": "status",
+          "type": "Text"
+        },
+        {
+          "object_id": "category",
+          "name": "category",
+          "type": "array"
+        },
+        {
+          "object_id": "width",
+          "name": "width",
+          "type": "Number"
+        },
+        {
+          "object_id": "length",
+          "name": "length",
+          "type": "Number"
+        }
+      ],
+      "static_attributes": [
+        {
+          "name": "name",
+          "type": "Text",
+          "value": "Plaza 001"
+        },
+        {
+          "name": "location",
+          "type": "geo:point",
+          "value": "42.819831, -1.643384"
+        },
+        {
+          "name": "refParkingSite",
+          "type": "Relationship",
+          "value": "urn:ngsi-ld:ParkingSite:Pamplona:EmpresaParking01"
+        }
+      ]
+    }
+  ]
+}'
+
+# 3. Crear una suscripción para persistir datos en PostgreSQL
+
+curl -iX POST \
+  'http://localhost:1026/v2/subscriptions' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: Pamplona' \
+  -H 'fiware-servicepath: /EmpresaParking_01' \
+  -d '{
+  "description": "Notificar a Cygnus los cambios en plazas de aparcamiento",
+  "subject": {
+    "entities": [
+      {
+        "idPattern": "urn:ngsi-ld:ParkingSpot:Pamplona:EmpresaParking01:.*",
+        "type": "ParkingSpot"
+      }
+    ],
+    "condition": {
+      "attrs": []
+    }
+  },
+  "notification": {
+    "http": {
+      "url": "http://cygnus:5055/notify"
+    },
+    "attrs": [],
+    "attrsFormat": "normalized"
+  },
+  "throttling": 5
+}'
+
+# 4. Enviar datos para actualizar el estado de la plaza de aparcamiento
+
+curl -iX POST \
+  'http://localhost:7896/iot/json?k=parking123&i=parking-spot-001' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: Pamplona' \
+  -H 'fiware-servicepath: /EmpresaParking_01' \
+  -d '{
+  "status": "occupied",
+  "category": ["onStreet", "forDisabled"],
+  "width": 2.5,
+  "length": 5.0
+}'
+
+# 5. Consultar el estado actual de la plaza de aparcamiento
+
+curl -X GET \
+  'http://localhost:1026/v2/entities/urn:ngsi-ld:ParkingSpot:Pamplona:EmpresaParking01:001' \
+  -H 'fiware-service: Pamplona' \
+  -H 'fiware-servicepath: /EmpresaParking_01'
+
+# 6. Verificar que los datos se han almacenado en PostgreSQL
+# Conectar a PostgreSQL y ejecutar:
+# \c postgres
+# SELECT * FROM pamplona_empresaparking_01_parkingspot;
+
+curl -X GET \
+  'http://localhost:1026/v2/entities' \
+  -H 'fiware-service: Pamplona' \
+  -H 'fiware-servicepath: /EmpresaParking_01'
