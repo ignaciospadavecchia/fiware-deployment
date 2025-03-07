@@ -1,5 +1,6 @@
-# ============================================================================
-# ENDPOINTS PARA CONFIGURACIÓN DE SISTEMA DE PARKING CON FIWARE
+
+# ============================================================================ 
+# ENDPOINTS PARA CONFIGURACIÓN Y PRUEBA DE SISTEMA DE PARKING CON FIWARE
 # ============================================================================
 
 # · · ·
@@ -8,15 +9,18 @@
 # 1. Registrar un grupo de servicios (NP del IoT JSON)
 # ============================================================================
 
+# El agente IoT JSON se registra como perteneciente a un Servicio y un Service Path (Tenant). 
+# Informa su API key, indica quién es su Context Broker y qué tipo de entidad es y qué tipo de recurso.
+
 curl -iX POST \
   'http://localhost:4041/iot/services' \
   -H 'Content-Type: application/json' \
   -H 'fiware-service: pamplona' \
-  -H 'fiware-servicepath: /' \
+  -H 'fiware-servicepath: /parkings' \
   -d '{
   "services": [
     {
-      "apikey": "parking123",
+      "apikey": "api-key-empresa-parking-1",
       "cbroker": "http://orion:1026",
       "entity_type": "ParkingSpot",
       "resource": "/iot/json"
@@ -28,16 +32,18 @@ curl -iX POST \
 # 2. Registrar un dispositivo (plaza de aparcamiento)
 # ============================================================================
 
+# El agente IoT JSON registra un dispositivo con Device Id, un Nombre de entidad (según formato urn:ngsi-ld:{ Tipo de entidad }:{ Servicio }:{ Service-Path }: { Id del Dispositivo }), Tipo de Entidad, Protocolo y Transporte, Zona Horaria, Atributos y Atributos Estáticos.
+
 curl -iX POST \
   'http://localhost:4041/iot/devices' \
   -H 'Content-Type: application/json' \
   -H 'fiware-service: pamplona' \
-  -H 'fiware-servicepath: /' \
+  -H 'fiware-servicepath: /parkings' \
   -d '{
   "devices": [
     {
       "device_id": "parking-spot-001",
-      "entity_name": "urn:ngsi-ld:ParkingSpot:Pamplona:EmpresaParking01:001",
+      "entity_name": "urn:ngsi-ld:ParkingSpot:pamplona:parkings:ParkingSpot001",
       "entity_type": "ParkingSpot",
       "protocol": "JSON",
       "transport": "HTTP",
@@ -76,9 +82,9 @@ curl -iX POST \
           "value": "42.819831, -1.643384"
         },
         {
-          "name": "refParkingSite",
+          "name": "refparkingsite",
           "type": "Relationship",
-          "value": "urn:ngsi-ld:ParkingSite:Pamplona:EmpresaParking01"
+          "value": "urn:ngsi-ld:parkingsite:pamplona:parkings"
         }
       ]
     }
@@ -89,19 +95,19 @@ curl -iX POST \
 # 3. Crear una suscripción para persistir datos en PostgreSQL
 # ============================================================================
 
-# Relacionará el Context Broker con el fiware-service o tenant creado "orion-pamplona"
+# Indica al Context Broker que debe notificar a Cygnus los cambios en las entidades ParkingSpot relacionados a este tenant. Creará en MongoDB una tabla "orion-pamplona", es decir una asociación entre Context Broker/fiware-service.
 
 curl -iX POST \
   'http://localhost:1026/v2/subscriptions' \
   -H 'Content-Type: application/json' \
   -H 'fiware-service: pamplona' \
-  -H 'fiware-servicepath: /' \
+  -H 'fiware-servicepath: /parkings' \
   -d '{
   "description": "Notificar a Cygnus los cambios en plazas de aparcamiento",
   "subject": {
     "entities": [
       {
-        "idPattern": "urn:ngsi-ld:ParkingSpot:Pamplona:EmpresaParking01:.*",
+        "idPattern": "urn:ngsi-ld:ParkingSpot:pamplona:parkings:.*",
         "type": "ParkingSpot"
       }
     ],
@@ -123,13 +129,13 @@ curl -iX POST \
 # 4. Enviar datos para actualizar el estado de la plaza de aparcamiento
 # ============================================================================
 
-# Como es una actualización irá al SOUTH_PORT del Agente JSON
+# Como es una actualización irá al SOUTH_PORT del Agente JSON con el api key de la empresa y el device id de la entidad que se actualiza.
 
 curl -iX POST \
-  'http://localhost:7896/iot/json?k=parking123&i=parking-spot-001' \
+  'http://localhost:7896/iot/json?k=api-key-empresa-parking-1&i=parking-spot-001' \
   -H 'Content-Type: application/json' \
   -H 'fiware-service: pamplona' \
-  -H 'fiware-servicepath: /' \
+  -H 'fiware-servicepath: /parkings' \
   -d '{
   "status": "occupied",
   "category": ["onStreet", "forDisabled"],
@@ -147,29 +153,34 @@ curl -iX POST \
 curl -X GET \
   'http://localhost:1026/v2/entities' \
   -H 'fiware-service: pamplona' \
-  -H 'fiware-servicepath: /'
+  -H 'fiware-servicepath: /parkings'
 
 # Luego utilizar el id de este modo:
 
 curl -X GET \
   'http://localhost:1026/v2/entities/ParkingSpot:parking-spot-001' \
   -H 'fiware-service: pamplona' \
-  -H 'fiware-servicepath: /' \
+  -H 'fiware-servicepath: /parkings' \
 
 # También se pueden usar query parameters para filtrar por tipo e id:
 
  curl -X GET \
+     'http://localhost:1026/v2/entities?type=ParkingSpot' \
+     -H 'fiware-service: pamplona' \
+     -H 'fiware-servicepath: /parkings'
+
+ curl -X GET \
      'http://localhost:1026/v2/entities?type=ParkingSpot&id=parking-spot-001' \
      -H 'fiware-service: pamplona' \
-     -H 'fiware-servicepath: /'
+     -H 'fiware-servicepath: /parkings'
 
 # ============================================================================
 # 6. Verificar que los datos se han almacenado en PostgreSQL
 # ============================================================================
 
 # Conectar a PostgreSQL y ejecutar:
-# \c postgres
-# SELECT * FROM pamplona_empresaparking_01_parkingspot;
+
+# SELECT * FROM pamplona_empresaparking_01_ParkingSpot;
 
 curl -X GET \
   'http://localhost:1026/v2/entities' \
