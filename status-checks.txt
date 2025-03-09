@@ -1,0 +1,17 @@
+ORION VERSION
+GET http://localhost:1026/version
+
+SUBSCRIPCIONES EN ORION DE CYGNUS
+http://localhost:1026/v2/subscriptions/
+
+VERSION STH-COMET
+curl -X GET "http://localhost:8666/version"
+
+VERSION IOT AGENT 
+curl -X GET "http://localhost:4041/iot/about"
+
+VERSION IOT AGENT UL
+curl -X GET "http://localhost:4061/iot/about"
+
+CYGNUS VERSION
+http://localhost:5080/v1/version

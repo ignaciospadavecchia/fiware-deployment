@@ -1,0 +1,160 @@
+# ============================================================================
+# 3. Crear una suscripción para persistir datos en PostgreSQL
+# ============================================================================
+
+# Indica al Context Broker que debe notificar a Cygnus los cambios en las entidades ParkingSpot relacionados a este tenant. Creará en MongoDB una tabla "orion-pamplona", es decir una asociación entre Context Broker/fiware-service.
+
+curl -iX POST \
+  'http://localhost:1026/v2/subscriptions' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /parkings' \
+  -d '{
+  "description": "Notificar a Cygnus los cambios en plazas de aparcamiento",
+  "subject": {
+    "entities": [
+      {
+        "idPattern": ".*",
+        "type": "ParkingSpot"
+      }
+    ],
+    "condition": {
+      "attrs": []
+    }
+  },
+  "notification": {
+    "http": {
+      "url": "http://cygnus:5055/notify"
+    },
+    "attrs": [],
+    "attrsFormat": "normalized"
+  },
+  "throttling": 5
+}'
+
+# ============================================================================
+# 4. Crea el schema y la tabla en PostgreSQL para poder insertar data. 
+# ============================================================================
+
+# Basado en como hemos configurado el servicio, el esquema en este caso será "pamplona"
+
+# El nombre de la tabla (subservicio) debe ir con guiones bajos.
+
+-- Create the schema if it doesn't exist
+CREATE SCHEMA IF NOT EXISTS pamplona;
+
+-- Create the table for parking spot data
+CREATE TABLE pamplona.parkings_parkingspot_parking_spot_001_parkingspot (
+    recvTime TIMESTAMP,
+    fiwareServicePath TEXT,
+    entityId TEXT,
+    entityType TEXT,
+    length FLOAT,
+    length_md TEXT,
+    width FLOAT,
+    width_md TEXT,
+    category TEXT,
+    category_md TEXT,
+    TimeInstant TIMESTAMP,
+    TimeInstant_md TEXT,
+    status TEXT,
+    status_md TEXT
+);
+
+
+# ============================================================================
+# 5. Enviar datos para actualizar el estado de la plaza de aparcamiento
+# ============================================================================
+
+# Como es una actualización irá al SOUTH_PORT del Agente JSON con el api key de la empresa y el device id de la entidad que se actualiza.
+
+curl -iX POST \
+  'http://localhost:7896/iot/json?k=api_key_empresa_parking_1&i=parking_spot_001' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /parkings' \
+  -d '{
+  "status": "occupied",
+  "category": ["onStreet", "forDisabled"],
+  "width": 2.3,
+  "length": 5.0
+}'
+
+# ============================================================================
+# 5. Consultar el estado actual de la plaza de aparcamiento
+# ============================================================================
+
+# El cliente consulta al Context Broker
+# Primero será util listar todas las entidades para ver id especifico.
+
+curl -X GET \
+  'http://localhost:1026/v2/entities' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /parkings'
+
+# Luego utilizar el id de este modo:
+
+curl -X GET \
+  'http://localhost:1026/v2/entities/ParkingSpot:parking-spot-001' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /parkings' \
+
+# También se pueden usar query parameters para filtrar por tipo e id:
+
+ curl -X GET \
+     'http://localhost:1026/v2/entities?type=ParkingSpot' \
+     -H 'fiware-service: pamplona' \
+     -H 'fiware-servicepath: /parkings'
+
+ curl -X GET \
+     'http://localhost:1026/v2/entities?type=ParkingSpot&id=parking-spot-001' \
+     -H 'fiware-service: pamplona' \
+     -H 'fiware-servicepath: /parkings'
+
+# ============================================================================
+# 6. Verificar que los datos se han almacenado en PostgreSQL
+# ============================================================================
+
+# Conectar a PostgreSQL y ejecutar:
+
+# SELECT * FROM pamplona_ParkingSpot;
+
+# Que sería el equivalente a: 
+
+curl -X GET \
+  'http://localhost:1026/v2/entities' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /'
+
+
+# ============================================================================
+# 7. Otras formas para PostgreSQL
+# ============================================================================
+
+SUBCRIPCION PARA POSTGRES II
+curl -X POST 'http://localhost:1026/v2/subscriptions'
+  -H 'Content-Type: application/json' 
+  -H "Fiware-Service: pamplona" 
+  -H "Fiware-ServicePath: /parking" \
+-d '{
+  "description": "Notify Cygnus of changes in IoT Agent Postgress",
+  "subject": {
+    "entities": [
+      {
+        "idPattern": ".*"
+      }
+    ]
+  },
+  "notification": {
+    "http": {
+      "url": "http://cygnus:5055/notify"
+    }
+  },
+  "throttling": 0
+}'
+
+DUMMY DATA FOR motion001
+curl -iX POST \
+  'http://localhost:7896/iot/json?k=111111111&i=Movilidad001' \
+  -H 'Content-Type: application/json' \
+  -d '{"t": "21"}'
