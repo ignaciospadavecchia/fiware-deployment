@@ -1,16 +1,16 @@
 
 # ============================================================================ 
-# ENDPOINTS PARA CONFIGURACIÓN Y PRUEBA DE SISTEMA DE PARKING CON FIWARE
+# PASO A PASO · CONFIGURACIÓN Y PRUEBA DE SISTEMA DE PARKING CON FIWARE
 # ============================================================================
 
 # · · ·
 
 # ============================================================================
-# 1. Registrar un grupo de servicios (NP del IoT JSON)
+# 1. Registrar un grupo de servicios
 # ============================================================================
 
-# El agente IoT JSON se registra como perteneciente a un Servicio y un Service Path (Tenant). 
-# Informa su API key, indica quién es su Context Broker y qué tipo de entidad es y qué tipo de recurso.
+# El agente IoT JSON se registra ante el Context Broker como perteneciente a un Servicio/Subservicio (service-path, vertical, tenant). 
+# Informa su API key, sabe quién es su Context Broker y qué tipo de entidad es y en qué ruta tiene que registrar el recurso (/iot/json dentro del Context Broker).
 
 curl -iX POST \
   'http://localhost:4041/iot/services' \
@@ -139,7 +139,7 @@ curl -iX POST \
   -d '{
   "status": "occupied",
   "category": ["onStreet", "forDisabled"],
-  "width": 2.6,
+  "width": 2.4,
   "length": 5.0
 }'
 
@@ -181,6 +181,8 @@ curl -X GET \
 # Conectar a PostgreSQL y ejecutar:
 
 # SELECT * FROM pamplona_ParkingSpot;
+
+# Que sería el equivalente a: 
 
 curl -X GET \
   'http://localhost:1026/v2/entities' \
