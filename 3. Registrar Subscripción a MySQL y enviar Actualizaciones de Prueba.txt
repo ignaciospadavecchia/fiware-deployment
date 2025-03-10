@@ -1,4 +1,9 @@
 
+# ============================================================================
+# . Crear una suscripción para persistir datos en PostgreSQL
+# ============================================================================
+
+
 SUBCRIPCION PARA MYSQL
 
 curl -X POST 'http://localhost:1026/v2/subscriptions'

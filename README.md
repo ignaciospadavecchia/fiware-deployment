@@ -7,7 +7,7 @@ Desde que los datos llegan al IoT Agent hasta que se almacenan en las bases de d
 
 1. **Dispositivo IoT → IoT Agent JSON (puerto 7896)**
     - Los datos del dispositivo (plaza de aparcamiento) se envían al puerto sur (SOUTH_PORT=7896) del IoT Agent JSON
-    - La API key (`api-key-empresa-parking-1`) y el ID del dispositivo (`parking-spot-001`) son usados para identificar el dispositivo
+    - La API key (`api_key_empresa_parking_1`) y el ID del dispositivo (`parking_spot_001`) son usados para identificar el dispositivo
 2. **IoT Agent JSON → Orion Context Broker (puerto 1026)**
     - El IoT Agent procesa los datos y los envía al Context Broker Orion en el puerto 1026
     - Los datos se transforman al formato NGSI v2
