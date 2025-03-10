@@ -1,4 +1,6 @@
+
 SUBCRIPCION PARA MYSQL
+
 curl -X POST 'http://localhost:1026/v2/subscriptions'
   -H 'Content-Type: application/json' 
   -H "Fiware-Service: pamplona" 
