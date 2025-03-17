@@ -152,11 +152,11 @@ services:
       
       # Configuración de PostgreSQL
       - "CYGNUS_POSTGRESQL_ENABLE=true"
-      - "CYGNUS_POSTGRESQL_HOST=${POSTGRES_HOST}"
+      - "CYGNUS_POSTGRESQL_HOST=${CYGNUS_POSTGRESQL_HOST}"
       - "CYGNUS_POSTGRESQL_PORT=${CYGNUS_POSTGRESQL_PORT}"
-      - "CYGNUS_POSTGRESQL_DATABASE=${POSTGRES_DB}"
-      - "CYGNUS_POSTGRESQL_USER=${POSTGRES_USER}"
-      - "CYGNUS_POSTGRESQL_PASS=${POSTGRES_PASSWORD}"
+      - "CYGNUS_POSTGRESQL_DATABASE=${CYGNUS_POSTGRESQL_DATABASE}"
+      - "CYGNUS_POSTGRESQL_USER=${CYGNUS_POSTGRESQL_USER}"
+      - "CYGNUS_POSTGRESQL_PASS=${CYGNUS_POSTGRESQL_PASS}"
       - "CYGNUS_POSTGRESQL_SERVICE=${ORION_HOST}"
       - "CYGNUS_POSTGRESQL_DATA_MODEL=${CYGNUS_POSTGRESQL_DATA_MODEL}"
       - "CYGNUS_POSTGRESQL_ATTR_PERSISTENCE=${CYGNUS_POSTGRESQL_ATTR_PERSISTENCE}"
@@ -167,11 +167,11 @@ services:
       - "CYGNUS_MONGO_SERVICE_PORT=${CYGNUS_MONGO_SERVICE_PORT}"
       
       # Configuración de MySQL
-      - "CYGNUS_MYSQL_HOST=${MYSQL_HOST}"
-      - "CYGNUS_MYSQL_PORT=${MYSQL_PORT}"
-      - "CYGNUS_MYSQL_DB=${MYSQL_DATABASE}"
-      - "CYGNUS_MYSQL_USER=${MYSQL_USER}"
-      - "CYGNUS_MYSQL_PASS=${MYSQL_PASSWORD}"
+      - "CYGNUS_MYSQL_HOST=mysql"
+      - "CYGNUS_MYSQL_PORT=3306"
+      - "CYGNUS_MYSQL_DB=mysql"
+      - "CYGNUS_MYSQL_USER=fiware-mysql-user"
+      - "CYGNUS_MYSQL_PASS=password"
       - "CYGNUS_MYSQL_DATA_MODEL=${CYGNUS_MYSQL_DATA_MODEL}"
       - "CYGNUS_MYSQL_ATTR_PERSISTENCE=${CYGNUS_MYSQL_ATTR_PERSISTENCE}"
     restart: unless-stopped
@@ -222,6 +222,8 @@ services:
     volumes:
       - postgis-data:/var/lib/postgresql
       - dbbackups:/backups
+    networks:
+      - fiware
 
   # MySQL - Base de datos alternativa para históricos
   mysql:
@@ -264,6 +266,26 @@ services:
       - "DB_URI=${MONGO_HOST}:${MONGO_PORT}"
       - "LOGOPS_LEVEL=${STH_LOG_LEVEL}"
     restart: unless-stopped
+    networks:
+      - fiware
+
+  nifi:
+    image: apache/nifi:latest
+    container_name: fiware-nifi
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      - NIFI_WEB_HTTP_PORT=8080
+      - NIFI_WEB_HTTP_HOST= 0.0.0.0
+    volumes:
+      - ./data/:/data
+      - ./driver:/driver
+      - ./content_repository:/opt/nifi/nifi-current/content_repository
+      - ./database_repository:/opt/nifi/nifi-current/database_repository
+      - ./extensions:/opt/nifi/nifi-current/extensions
+      - ./flowfile_repopsitory:/opt/nifi/nifi-current/flowfile_respository
+      - ./provenance_repository:/opt/nifi/nifi-current/provenance_repository
     networks:
       - fiware
 

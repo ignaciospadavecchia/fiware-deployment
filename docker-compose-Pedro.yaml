@@ -267,7 +267,7 @@ services:
     container_name: nifi
     ports:
       - "8080:8080"
-      - "8443:8443"
+      - "8443:8443" # Check the logs for the user and password
     environment:
       - NIFI_WEB_HTTP_PORT=8080
       - NIFI_WEB_HTTP_HOST= 0.0.0.0
