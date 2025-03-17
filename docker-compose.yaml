@@ -150,7 +150,7 @@ services:
       
       # PostgreSQL config
       CYGNUS_POSTGRESQL_HOST: postgres-db
-      CYGNUS_POSTGRESQL_PORT: 5432
+      CYGNUS_POSTGRESQL_PORT: 5433
       CYGNUS_POSTGRESQL_DATABASE: postgres
       CYGNUS_POSTGRESQL_USER: postgres
       CYGNUS_POSTGRESQL_PASS: "${POSTGRES_PASSWORD:-password}"
@@ -179,7 +179,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data 
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
@@ -204,7 +204,7 @@ services:
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
       - RUN_AS_ROOT=true
     ports:
-      - "5433:5433"
+      - "5434:5433"
     restart: on-failure
     volumes:
       - postgis-data:/var/lib/postgresql

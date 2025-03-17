@@ -7,8 +7,11 @@
 # 1. Registrar un grupo de servicios
 # ============================================================================
 
-# El agente IoT JSON se registra ante el Context Broker como perteneciente a un Servicio/Subservicio (service-path, vertical, tenant). 
-# Informa su API key, sabe quién es su Context Broker y qué tipo de entidad es y en qué ruta tiene que registrar el recurso (/iot/json dentro del Context Broker).
+# Para registrar un servicio (grupo) de dispositivos JSON 
+# Enviar un HTTP POST al agente IoT JSON en su endpoint de servicios. 
+# En la cabecera indicar el Servicio/Subservicio (service-path, vertical, tenant). 
+# En el cuerpo indicadr el API key del servicio y el CB al que informar acerca de:
+# El tipo de entidades o dispositivos IoT que informarán su estado en este grupo de servicios.
 
 curl -iX POST \
   'http://localhost:4041/iot/services' \
@@ -30,7 +33,13 @@ curl -iX POST \
 # 2. Registrar un dispositivo (plaza de aparcamiento)
 # ============================================================================
 
-# El agente IoT JSON registra un dispositivo con Device Id, un Nombre de entidad (según formato urn:ngsi-ld:{ Tipo de entidad }:{ Servicio }:{ Service-Path }: { Id del Dispositivo }), Tipo de Entidad, Protocolo y Transporte, Zona Horaria, Atributos y Atributos Estáticos.
+# Para registrar dispositivos en el grupo de servicios recientemente creado:
+# Enviar un POST al agente IoT JSON en su endpoint para registrar dispositivos iot.
+# En el cuerpo informar:
+# - el Id del Dispositivo, 
+# - el Nombre de entidad (según formato urn:ngsi-ld:{ Tipo de entidad }:{ Servicio }:{ Service-Path }: { Id del Dispositivo }), 
+# - el Tipo de Entidad, Protocolo y Transporte, Zona Horaria, 
+# - los Atributos estáticos y dinámicos.
 
 curl -iX POST \
   'http://localhost:4041/iot/devices' \
