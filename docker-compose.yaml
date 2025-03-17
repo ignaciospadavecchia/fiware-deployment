@@ -17,7 +17,8 @@ services:
       - "${ORION_PORT}:1026"
     depends_on:
       - mongo
-    command: -dbhost ${MONGO_HOST} -logLevel INFO
+    command: 
+      -dbhost ${MONGO_HOST} -logLevel INFO #-corsOrigin __ALL # -dbURI mongodb://mongo
     healthcheck:
       test: curl --fail -s http://localhost:1026/version || exit 1
       interval: 30s
@@ -141,6 +142,8 @@ services:
       - mysql
     ports:
       - "${CYGNUS_API_PORT}:5050"
+      - "${CYGNUS_API_PORT2}:5051"
+      - "${CYGNUS_API_PORT3}:5055"
       - "${CYGNUS_ADMIN_PORT}:5080"
     environment:
       # Configuración general
@@ -198,6 +201,27 @@ services:
     restart: unless-stopped
     networks:
       - fiware
+
+
+  postgis:
+    image: postgis/postgis
+    hostname: postgis
+    container_name: fiware-postgis
+    environment:
+      # If you need to create multiple database you can add coma separated databases eg gis,data
+      - "POSTGRES_DB=${POSTGRES_DB}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+      - "ALLOW_IP_RANGE=0.0.0.0/0"
+      # Add extensions you need to be enabled by default in the DB. Default are the five specified below
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+      - RUN_AS_ROOT=true
+    ports:
+      - "5433:5433"
+    restart: on-failure
+    volumes:
+      - postgis-data:/var/lib/postgresql
+      - dbbackups:/backups
 
   # MySQL - Base de datos alternativa para históricos
   mysql:
@@ -257,7 +281,10 @@ volumes:
     name: fiware_mysql_data
   mongo_data:
     name: fiware_mongo_data
-
+  postgis-data:
+    name: fiware_postgis_data
+  dbbackups:
+    name: fiware_dbbackups
 # ============================================================================
 # REDES
 # ============================================================================
