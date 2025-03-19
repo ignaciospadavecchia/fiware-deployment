@@ -156,7 +156,7 @@ services:
       CYGNUS_POSTGRESQL_PASS: "${POSTGRES_PASSWORD:-password}"
       CYGNUS_POSTGRESQL_ENABLE: true
       CYGNUS_POSTGRESQL_SERVICE: orion
-      CYGNUS_POSTGRESQL_DATA_MODEL: dm-by-fixed-entity-type
+      CYGNUS_POSTGRESQL_DATA_MODEL: dm-by-service-path
       CYGNUS_POSTGRESQL_ATTR_PERSISTENCE: column
       
       # MySQL config

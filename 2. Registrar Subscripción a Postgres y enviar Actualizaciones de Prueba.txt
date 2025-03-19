@@ -47,7 +47,7 @@ curl -iX POST \
   -d '{
   "status": "occupied",
   "category": ["onStreet", "forDisabled"],
-  "width": 2.5,
+  "width": 2.6,
   "length": 2.0
 }'
 

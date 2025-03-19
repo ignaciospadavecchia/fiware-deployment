@@ -1,0 +1,70 @@
+curl -iX POST \
+  'http://localhost:4041/iot/services' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /iot' \
+  -d '{
+ "services": [
+   {
+     "apikey":      "11111111111",
+     "cbroker":     "http://orion:1026",
+     "entity_type": "iot",
+     "resource":    "/iot/json"
+   }
+ ]
+}'
+
+APROVISIONAMIENTO DE UN DISPOSITIVOS
+curl -iX POST \
+  'http://localhost:4041/iot/devices' \
+  -H 'Content-Type: application/json' \
+  -H 'fiware-service: pamplona' \
+  -H 'fiware-servicepath: /iot' \
+  -d '{
+ "devices": [
+   {
+     "device_id":   "Libelium001",
+     "entity_name": "Libelium001",
+     "entity_type": "iot",
+     "timezone":    "Europe/Berlin",
+     "attributes": [
+       { "object_id": "temperature", "name": "temperature", "type": "Integer" }
+     ],
+     "static_attributes": [
+     ]
+   }
+ ]
+}
+'
+
+
+SUBCRIPCION CYGNUS PARA POSTGRES
+curl -X POST 'http://localhost:1026/v2/subscriptions'
+  -H 'Content-Type: application/json' 
+  -H "Fiware-Service: pamplona" 
+  -H "Fiware-ServicePath: /iot " \
+-d '{
+  "description": "Notify Cygnus of changes in IoT",
+  "subject": {
+    "entities": [
+      {
+        "idPattern": ".*"
+        
+      }
+    ]
+  },
+  "notification": {
+    "http": {
+      "url": "http://cygnus:5055/notify"
+    }
+  },
+  "throttling": 0
+}'
+
+
+
+DUMMY DATA FOR motion001
+curl -iX POST \
+  'http://localhost:7896/iot/json?k=11111111111&i=Libelium001' \
+  -H 'Content-Type: application/json' \
+  -d '{"t": "30"}'
